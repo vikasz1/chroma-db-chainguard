@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chroma-app
+  labels:
+    app: chroma-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: chroma-app
+  template:
+    metadata:
+      labels:
+        app: chroma-app
+    spec:
+      containers:
+        - name: chroma-app
+          image: chroma-app:latest
+          imagePullPolicy: Never # Since we're using local image in minikube
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: chroma-db
+              mountPath: /app/db
+      volumes:
+        - name: chroma-db
+          emptyDir: {}
