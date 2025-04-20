@@ -1,26 +1,28 @@
-# Use Chainguard Python image
-FROM cgr.dev/chainguard/python:latest-dev
 
-# Set working directory
+FROM cgr.dev/chainguard/python:latest-dev as dev
+
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+RUN python -m venv venv
+ENV PATH="/app/venv/bin":$PATH
+COPY requirements.txt requirements.txt
+RUN pip install -r requirements.txt
 
-# Install dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Set ENVs
+ENV HF_HOME=/app/.cache
+ENV XDG_CACHE_HOME=/app/.cache
+RUN mkdir -p /app/.cache
+RUN sed -i 's|DOWNLOAD_PATH = .*|DOWNLOAD_PATH = Path("/app/data") / "chroma" / "onnx_models" / MODEL_NAME|' venv/lib/python3.*/site-packages/chromadb/utils/embedding_functions.py
 
-# Copy the rest of the application
+
+FROM cgr.dev/chainguard/python:latest
+
+WORKDIR /app
+
 COPY . .
+COPY --from=dev /app/venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
 
-# Create the db directory for ChromaDB persistence
-RUN mkdir -p db
-
-# Expose the port the app runs on
 EXPOSE 8000
 
-# Set the entrypoint to python
-ENTRYPOINT ["python", "-m", "uvicorn"]
-
-# Default command arguments
-CMD ["main:app", "--host", "0.0.0.0", "--port", "8000"] 
+ENTRYPOINT ["python", "main.py"]

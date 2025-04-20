@@ -2,8 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: chroma-app
-  labels:
-    app: chroma-app
 spec:
   replicas: 1
   selector:
@@ -17,12 +15,27 @@ spec:
       containers:
         - name: chroma-app
           image: chroma-app:latest
+          # command: ["/bin/sh", "-c"]
+          # args: ["python -m uvicorn main:app --host 0.0.0.0 --port 8000"]
           imagePullPolicy: Never # Since we're using local image in minikube
+          securityContext:
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - KILL
+                - MKNOD
+                - SYS_CHROOT
+          resources: # Specify resource requests and limits
+            requests:
+              memory: "128Mi"
+              cpu: "250m"
+              ephemeral-storage: "1Gi"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+              ephemeral-storage: "2Gi"
           ports:
             - containerPort: 8000
-          volumeMounts:
-            - name: chroma-db
-              mountPath: /app/db
-      volumes:
-        - name: chroma-db
-          emptyDir: {}
+
